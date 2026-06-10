@@ -1,0 +1,18 @@
+[
+  {"id":"chair_squat","name":"椅子深蹲","duration":30,"sets":3,"restTime":30,"instructions":"双脚与肩同宽，臀部向后轻触椅面后站起。","safety":"膝盖保持朝向脚尖，疼痛时减小幅度。","difficulty":"easy","categories":["chair","knee-friendly","lower"],"alternatives":["wall_sit","bed_glute_bridge"]},
+  {"id":"bed_glute_bridge","name":"床上臀桥","duration":40,"sets":3,"restTime":30,"instructions":"仰卧屈膝，收紧臀部抬髋到肩髋膝成一直线。","safety":"腰部不反弓，颈部放松。","difficulty":"easy","categories":["bed","lower","knee-friendly"],"alternatives":["side_lying_leg_raise"]},
+  {"id":"seated_march","name":"坐姿抬腿","duration":45,"sets":2,"restTime":25,"instructions":"坐稳后交替抬膝，保持躯干直立。","safety":"避免憋气，腰背不适时降低抬腿高度。","difficulty":"easy","categories":["chair","core","knee-friendly"],"alternatives":["dead_bug"]},
+  {"id":"wall_pushup","name":"墙壁俯卧撑","duration":35,"sets":3,"restTime":30,"instructions":"双手扶墙，身体成直线，屈肘靠近墙面后推回。","safety":"肩痛时缩小幅度。","difficulty":"easy","categories":["standing","upper"],"alternatives":["band_row"]},
+  {"id":"band_row","name":"弹力带划船","duration":40,"sets":3,"restTime":30,"instructions":"弹力带固定前方，夹背向后拉肘。","safety":"手腕中立，避免耸肩。","difficulty":"moderate","categories":["band","upper"],"alternatives":["wall_pushup"]},
+  {"id":"dead_bug","name":"死虫式","duration":30,"sets":3,"restTime":30,"instructions":"仰卧抬手屈膝，交替伸展对侧手脚。","safety":"下背贴近地面，动作慢。","difficulty":"moderate","categories":["bed","core"],"alternatives":["seated_march"]},
+  {"id":"standing_calf_raise","name":"站姿提踵","duration":35,"sets":3,"restTime":25,"instructions":"扶稳支撑物，脚跟抬起再缓慢落下。","safety":"保持平衡，不要弹震。","difficulty":"easy","categories":["standing","lower","knee-friendly"],"alternatives":["ankle_pump"]},
+  {"id":"ankle_pump","name":"踝泵","duration":45,"sets":2,"restTime":20,"instructions":"坐姿或卧姿，脚尖向前绷直再回勾。","safety":"动作轻柔，避免疼痛范围。","difficulty":"easy","categories":["chair","bed","recovery"],"alternatives":["standing_calf_raise"]},
+  {"id":"side_lying_leg_raise","name":"侧卧抬腿","duration":35,"sets":3,"restTime":30,"instructions":"侧卧保持身体成线，上侧腿慢抬慢放。","safety":"骨盆不要后倒。","difficulty":"easy","categories":["bed","lower","knee-friendly"],"alternatives":["bed_glute_bridge"]},
+  {"id":"seated_band_press","name":"坐姿弹力带推举","duration":35,"sets":3,"restTime":30,"instructions":"坐姿踩住弹力带，双手向上推举。","safety":"肩部不适时改为较低角度。","difficulty":"moderate","categories":["chair","band","upper"],"alternatives":["wall_pushup"]},
+  {"id":"bird_dog","name":"鸟狗式","duration":40,"sets":2,"restTime":30,"instructions":"四点跪姿，伸展对侧手脚并保持稳定。","safety":"膝盖垫软垫，腰不塌。","difficulty":"moderate","categories":["core","knee-friendly"],"alternatives":["dead_bug"]},
+  {"id":"standing_side_step","name":"站姿侧步","duration":45,"sets":2,"restTime":30,"instructions":"微屈膝，左右小步移动，保持躯干稳定。","safety":"膝痛时缩小步幅。","difficulty":"easy","categories":["standing","lower","knee-friendly"],"alternatives":["seated_march"]},
+  {"id":"seated_twist","name":"坐姿转体","duration":35,"sets":2,"restTime":25,"instructions":"坐稳后左右缓慢转动躯干。","safety":"腰痛时只做小幅度。","difficulty":"easy","categories":["chair","core"],"alternatives":["dead_bug"]},
+  {"id":"wall_sit","name":"靠墙静蹲","duration":25,"sets":3,"restTime":35,"instructions":"背靠墙下滑到舒适角度并保持。","safety":"膝盖疼痛时立即停止。","difficulty":"moderate","categories":["standing","lower"],"alternatives":["chair_squat"]},
+  {"id":"prone_swimmer","name":"俯卧游泳","duration":30,"sets":2,"restTime":30,"instructions":"俯卧轻抬对侧手脚，缓慢交替。","safety":"颈部保持中立。","difficulty":"moderate","categories":["bed","upper","core"],"alternatives":["bird_dog"]},
+  {"id":"breathing_reset","name":"呼吸恢复","duration":60,"sets":1,"restTime":15,"instructions":"鼻吸口呼，缓慢延长呼气。","safety":"头晕时恢复自然呼吸。","difficulty":"easy","categories":["recovery","bed","chair"],"alternatives":["ankle_pump"]}
+]
