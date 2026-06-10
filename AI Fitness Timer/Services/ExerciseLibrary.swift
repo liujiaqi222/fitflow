@@ -1,12 +1,24 @@
 import Foundation
 
+enum ExerciseLibraryError: Error, Equatable {
+    case duplicateTemplateID(String)
+}
+
 struct ExerciseLibrary {
     let templates: [ExerciseTemplate]
     private let byID: [String: ExerciseTemplate]
 
-    init(templates: [ExerciseTemplate]) {
+    init(templates: [ExerciseTemplate]) throws {
+        var lookup: [String: ExerciseTemplate] = [:]
+        for template in templates {
+            if lookup[template.id] != nil {
+                throw ExerciseLibraryError.duplicateTemplateID(template.id)
+            }
+            lookup[template.id] = template
+        }
+
         self.templates = templates
-        self.byID = Dictionary(uniqueKeysWithValues: templates.map { ($0.id, $0) })
+        self.byID = lookup
     }
 
     static func loadFromBundle(bundle: Bundle = .main) throws -> ExerciseLibrary {
@@ -15,7 +27,7 @@ struct ExerciseLibrary {
         }
         let data = try Data(contentsOf: url)
         let templates = try JSONDecoder().decode([ExerciseTemplate].self, from: data)
-        return ExerciseLibrary(templates: templates)
+        return try ExerciseLibrary(templates: templates)
     }
 
     func template(id: String) -> ExerciseTemplate? {
