@@ -60,15 +60,3 @@
 
 每个任务都应该独立可测、独立可验证，符合 writing-plans skill 的「review checkpoint」要求。
 
-## 用户给出的指令原文
-
-> "我同意，但是 context window 不够了，需要 handoff 到下一个 agent 了"
-
-即：**用户已批准 spec**，因 context 限制需要换 agent 继续，下一步是 writing-plans。
-
-## 给下一个 agent 的第一步
-
-1. 读 `docs/superpowers/specs/2026-06-10-ai-fitness-timer-design.md` 全文
-2. 调用 `Skill` tool 启动 `superpowers:writing-plans`
-3. 按照该 skill 的流程，把 spec 拆成实施计划，写到 `docs/superpowers/plans/2026-06-10-ai-fitness-timer-plan.md`（或 skill 指定的位置）
-4. 完成后提交 git
