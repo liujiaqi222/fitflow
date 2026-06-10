@@ -47,11 +47,14 @@ targets:
     deploymentTarget: "17.0"
     sources:
       - path: AI Fitness TimerWidget
+    info:
+      path: AI Fitness TimerWidget/Info.plist
+      properties:
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.local.ai-fitness-timer.widget
-        INFOPLIST_KEY_NSExtension:
-          NSExtensionPointIdentifier: com.apple.widgetkit-extension
 schemes:
   AI Fitness Timer:
     build:
