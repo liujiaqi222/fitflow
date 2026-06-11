@@ -59,6 +59,28 @@ final class WorkoutSession {
     var feeling: Feeling = Feeling.easy
     var painScore: Int = 0
     var localMetadataID: UUID?
+
+    init(
+        id: UUID = UUID(),
+        date: Date = Date(),
+        plan: WorkoutPlan? = nil,
+        completedExerciseIds: [String] = [],
+        skippedExerciseIds: [String] = [],
+        totalSeconds: Int = 0,
+        feeling: Feeling = .easy,
+        painScore: Int = 0,
+        localMetadataID: UUID? = nil
+    ) {
+        self.id = id
+        self.date = date
+        self.plan = plan
+        self.completedExerciseIds = completedExerciseIds
+        self.skippedExerciseIds = skippedExerciseIds
+        self.totalSeconds = totalSeconds
+        self.feeling = feeling
+        self.painScore = painScore
+        self.localMetadataID = localMetadataID
+    }
 }
 
 @Model
@@ -67,4 +89,11 @@ final class WorkoutTemplate {
     var name: String = ""
     @Relationship(deleteRule: .cascade) var exercises: [ExerciseItem]? = []
     var createdAt: Date = Date()
+
+    init(id: UUID = UUID(), name: String = "", exercises: [ExerciseItem] = [], createdAt: Date = Date()) {
+        self.id = id
+        self.name = name
+        self.exercises = exercises
+        self.createdAt = createdAt
+    }
 }

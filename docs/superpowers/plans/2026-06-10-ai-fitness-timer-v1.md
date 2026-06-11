@@ -138,7 +138,7 @@ protocol WorkoutResumeStore {
 - Create: `AI Fitness TimerTests/SmokeTests.swift`
 - Create: `AI Fitness TimerUITests/LaunchUITests.swift`
 
-- [ ] **Step 1: Add the XcodeGen project definition**
+- [x] **Step 1: Add the XcodeGen project definition**
 
 Create `project.yml`:
 
@@ -209,7 +209,7 @@ schemes:
         - AI Fitness TimerUITests
 ```
 
-- [ ] **Step 2: Add a minimal app that launches**
+- [x] **Step 2: Add a minimal app that launches**
 
 Create `AI Fitness Timer/AI_TimerApp.swift`:
 
@@ -291,7 +291,7 @@ final class LaunchUITests: XCTestCase {
 }
 ```
 
-- [ ] **Step 3: Generate and build the project**
+- [x] **Step 3: Generate and build the project**
 
 Run:
 
@@ -303,7 +303,7 @@ xcodebuild -scheme "AI Fitness Timer" -destination 'platform=iOS Simulator,name=
 
 Expected: `** BUILD SUCCEEDED **`.
 
-- [ ] **Step 4: Run smoke tests**
+- [x] **Step 4: Run smoke tests**
 
 Run:
 
@@ -313,7 +313,7 @@ xcodebuild test -scheme "AI Fitness Timer" -destination 'platform=iOS Simulator,
 
 Expected: tests pass.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add project.yml "AI Fitness Timer" "AI Fitness TimerTests" "AI Fitness TimerUITests"
@@ -332,7 +332,7 @@ git commit -m "chore: scaffold iOS fitness timer app"
 - Create: `AI Fitness Timer/Services/ExerciseLibrary.swift`
 - Test: `AI Fitness TimerTests/ExerciseLibraryTests.swift`
 
-- [ ] **Step 1: Write failing exercise library tests**
+- [x] **Step 1: Write failing exercise library tests**
 
 Create `AI Fitness TimerTests/ExerciseLibraryTests.swift`:
 
@@ -356,7 +356,7 @@ final class ExerciseLibraryTests: XCTestCase {
 }
 ```
 
-- [ ] **Step 2: Run tests and verify failure**
+- [x] **Step 2: Run tests and verify failure**
 
 Run:
 
@@ -366,7 +366,7 @@ xcodebuild test -scheme "AI Fitness Timer" -destination 'platform=iOS Simulator,
 
 Expected: compile fails because `ExerciseLibrary` is not defined.
 
-- [ ] **Step 3: Add model code**
+- [x] **Step 3: Add model code**
 
 Create `AI Fitness Timer/Models/Enums.swift`:
 
@@ -521,7 +521,7 @@ struct HealthProfileSnapshot: Codable, Equatable {
 }
 ```
 
-- [ ] **Step 4: Add exercise resource and loader**
+- [x] **Step 4: Add exercise resource and loader**
 
 Create `AI Fitness Timer/Resources/ExerciseLibrary.json` with at least these 16 entries:
 
@@ -579,7 +579,7 @@ struct ExerciseLibrary {
 }
 ```
 
-- [ ] **Step 5: Run tests and commit**
+- [x] **Step 5: Run tests and commit**
 
 Run:
 
@@ -609,7 +609,7 @@ git commit -m "feat: add domain models and exercise library"
 - Test: `AI Fitness TimerTests/PlanRepositoryTests.swift`
 - Test: `AI Fitness TimerTests/HealthProfileStoreTests.swift`
 
-- [ ] **Step 1: Write failing infrastructure tests**
+- [x] **Step 1: Write failing infrastructure tests**
 
 Create `AI Fitness TimerTests/MockClockTests.swift`:
 
@@ -677,7 +677,7 @@ final class PlanRepositoryTests: XCTestCase {
 }
 ```
 
-- [ ] **Step 2: Run tests and verify failure**
+- [x] **Step 2: Run tests and verify failure**
 
 Run:
 
@@ -687,7 +687,7 @@ xcodebuild test -scheme "AI Fitness Timer" -destination 'platform=iOS Simulator,
 
 Expected: compile fails for missing types.
 
-- [ ] **Step 3: Add infrastructure and stores**
+- [x] **Step 3: Add infrastructure and stores**
 
 Create `AI Fitness Timer/Infrastructure/Clocking.swift`:
 
@@ -930,7 +930,7 @@ final class HealthProfileStore {
 }
 ```
 
-- [ ] **Step 4: Run tests and commit**
+- [x] **Step 4: Run tests and commit**
 
 Run:
 
