@@ -17,6 +17,7 @@ targets:
       - path: AI Fitness Timer
     settings:
       base:
+        GENERATE_INFOPLIST_FILE: YES
         PRODUCT_BUNDLE_IDENTIFIER: com.local.ai-fitness-timer
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
         INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents: YES
@@ -31,6 +32,9 @@ targets:
     deploymentTarget: "17.0"
     sources:
       - path: AI Fitness TimerTests
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
     dependencies:
       - target: AI Fitness Timer
   AI Fitness TimerUITests:
@@ -39,6 +43,9 @@ targets:
     deploymentTarget: "17.0"
     sources:
       - path: AI Fitness TimerUITests
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
     dependencies:
       - target: AI Fitness Timer
   AI Fitness TimerWidget:
