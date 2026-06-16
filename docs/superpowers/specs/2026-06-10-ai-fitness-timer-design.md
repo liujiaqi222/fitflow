@@ -49,22 +49,24 @@
 
 ```
 SwiftUI Views
+├── OnboardingView              // [新增] 新用户引导
 ├── HomeView
 ├── ChatPlanView
 ├── PlanEditorView
-├── WorkoutPlayerView
+├── WorkoutPlayerView           // 含内嵌 FeedbackView，fullScreenCover 呈现
 ├── FeedbackView
 ├── HistoryView
-├── HealthProfileView           // [新增]
+├── HealthProfileView
 └── SettingsView
 
 ViewModels
+├── OnboardingViewModel         // [新增]
 ├── HomeViewModel
 ├── ChatPlanViewModel
 ├── PlanEditorViewModel
 ├── WorkoutPlayerViewModel
 ├── FeedbackViewModel
-└── HealthProfileViewModel       // [新增]
+└── HealthProfileViewModel
 
 Services
 ├── AIService (protocol)
@@ -94,34 +96,65 @@ SwiftData Models
 ## 4. 页面流程与导航
 
 ```
-HomeView ──► ChatPlanView ──► PlanEditorView ──► WorkoutPlayerView ──► FeedbackView
-   │  ▲                                                                       │
-   │  └───────────────── (HealthProfile 更新) ◄────────────────────────────────┘
-   ├── HistoryView
-   ├── HealthProfileView
-   └── SettingsView
+[OnboardingView] ──首次──► HomeView ──► ChatPlanView ──► PlanEditorView ──► WorkoutPlayerView (+ FeedbackView 内嵌)
+                               │  ▲                                                    │
+                               │  └──────────────── (HealthProfile 更新) ◄─────────────┘
+                               ├── HistoryView
+                               ├── HealthProfileView
+                               ├── TemplatesView
+                               └── SettingsView
+
+底部 Tab：训练 (HomeView) | 我的 (HistoryView + HealthProfileView + SettingsView)
 ```
 
-使用 NavigationStack + navigationDestination 实现线性流程为主。HomeView 启动时检查 WorkoutResumeStore，若存在 30 分钟内未完成的训练，弹窗询问「恢复 / 放弃」。
+使用 NavigationStack + navigationDestination 实现线性流程为主。HomeView 启动时检查 WorkoutResumeStore，若存在 30 分钟内未完成的训练，首页切换为「训练中」状态显示恢复卡片（见 §12.2），不使用弹窗打断。
 
 ### 4.1 HomeView
 
-- 当前训练计划卡片（含动作标签和「开始训练」按钮）
-- 最近一次训练摘要
-- 快捷操作：AI 对话生成计划、从模板选择
-- 启动时执行未完成训练检查（见 §12.2）
+**首页根据用户状态切换，不同状态显示不同内容。**
+
+**状态 1：🆕 新用户（无档案）**
+
+- 显示 Onboarding 引导流程（见 §4.9），chip 选择式，1~2 屏完成
+- 目标偏好：减脂 / 增肌 / 康复 / 柔韧 / 心肺（多选）
+- 身体状况：膝盖不适 / 腰部问题 / 肩颈问题 / 术后恢复 / 无特殊（多选）
+- 可选补充说明：一行文本框
+- 完成后自动写入 HealthProfile，进入「有档无计划」状态
+
+**状态 2：📋 有档无计划**
+
+- 主 CTA：大按钮「生成今日计划」→ push 进入 ChatPlanView
+- 次要入口：「从模板选择」→ push 进入模板列表页
+- 底部：最近一次训练摘要卡片（无历史时不显示）
+
+**状态 3：⏳ 待训练**
+
+- 计划卡片（显示动作标签、总时长、动作数）
+- 主 CTA：「开始训练」→ fullScreenCover 弹出 WorkoutPlayerView
+- 次要入口：「重新生成」→ 回到 ChatPlanView
+- 底部：最近一次训练摘要卡片（不含本次待训练的计划）
+
+**状态 4：🏃 训练中（恢复场景）**
+
+- 恢复卡片：计划名称、「N 分钟前暂停 · 还剩 M 分钟」
+- 「继续训练」按钮 → fullScreenCover 弹出 WorkoutPlayerView，调用 `engine.resume(from: snapshot)`
+- 「放弃训练」按钮 → clear，回到「有档无计划」状态
+- 超时 30 分钟自动清除，回到「有档无计划」状态（见 §12.2）
+
+**底部导航**：2 个 Tab——「训练」（HomeView）+「我的」（合并历史/档案/设置）
 
 ### 4.2 ChatPlanView（已重写）
 
 **多轮对话界面**，对话流形态：
 
+- AI 开场白：「今天想怎么练？」（简洁，不复述档案）
+- 快捷标签根据 HealthProfile 动态生成：有膝盖术后 → 标签含「膝盖友好」「无跳跃」；无伤病 → 标签含「全身」「上肢」「核心」等。点击后**作为预填文本插入输入框**，用户可继续编辑后发送
 - 顶部消息流：user / assistant 气泡按时间排列
 - 底部输入区：文本框 + 快捷标签滚动条 + 发送按钮
-- 快捷标签：膝盖不适、无跳跃、术后、上肢为主、坐姿、卧姿、有弹力带、15 分钟、温和动作。点击后**作为预填文本插入输入框**，用户可继续编辑后发送
 - 计划卡片：当 AI 响应包含合法的 plan JSON 时，在 assistant 气泡位置渲染为可交互的内联卡片（显示动作列表、总时长、动作数）
 - 用户可以继续追问（如「把跳跃换掉」「加 5 分钟核心」），AI 基于完整对话历史 + 上一份 plan 生成新版本
-- **历史卡片不删除**，新卡片追加在新 assistant 消息处，方便用户对比和回退
-- 每张卡片底部有「使用此计划」按钮，点击进入 PlanEditorView，传入对应的 plan
+- **计划卡片替换而非追加**：新版本在原卡片位置替换，对话保持线性（我说 → 你回 → 我改 → 你更新），避免多张卡片堆叠造成选择负担
+- 计划卡片底部按钮「使用并编辑」，点击后 push 进入 PlanEditorView，对话自动结束（不可返回继续对话）
 
 **会话状态**：ChatPlanViewModel 维护 `[ChatMessage]`，其中 ChatMessage 包含 role / text / plan?（可选关联的 plan）/ timestamp。会话不持久化（仅在当前导航 stack 中存活），离开 ChatPlanView 后丢弃。
 
@@ -129,13 +162,14 @@ HomeView ──► ChatPlanView ──► PlanEditorView ──► WorkoutPlayer
 
 - 动作列表，支持拖拽排序
 - 每个动作可编辑：组数、每组时长、休息时间
-- 操作：删除动作、**标记不适**（写入 HealthProfile.disliked 列表）、替换为替代动作（从 ExerciseLibrary.alternatives 选取）
+- 操作：删除动作、**标记不适**（V1：标记不适 = 删除该动作 + 自动写入 HealthProfile.disliked 列表）、替换为替代动作（从 ExerciseLibrary.alternatives 选取）
 - 动作要领和安全提醒可展开查看
-- 统计栏：总时长、动作数、难度、不适标记数
+- 统计栏：总时长、动作数、难度
 - 保存为模板
 
 ### 4.4 WorkoutPlayerView
 
+- 以 fullScreenCover 呈现（从 PlanEditorView 点「开始训练」或从首页恢复训练触发），脱离导航栈，禁用手势返回
 - 全屏计时器，环形进度条（SwiftUI Circle + trim）
 - 显示：当前动作名、当前组数/总组数、倒计时、下一动作预览
 - 已训练时间、预估剩余时间、整体进度
@@ -144,23 +178,24 @@ HomeView ──► ChatPlanView ──► PlanEditorView ──► WorkoutPlayer
 - 点状进度指示器（动作进度）
 - 结束确认弹窗
 - **训中编辑动作（加组/换动作）不在 V1 范围**
+- 训练结束后在 fullScreenCover 内部切换为反馈界面（见 §4.5），反馈为可选，填完后 dismiss 整个 cover 回到首页
 
 ### 4.5 FeedbackView
 
+- 嵌入在 WorkoutPlayerView 的 fullScreenCover 内部，不独立呈现
 - 训练统计：时长、完成率、完成动作数
 - 疲劳程度选择：轻松/适中/吃力/疼痛
 - 疼痛评分滑块（0–10，选择「吃力」或「疼痛」时显示）
 - **若本次跳过 ≥ 1 个动作**：展示跳过动作列表 + 「调整健身档案」链接（跳转 HealthProfileView）
 - **若疼痛评分 ≥ 6**：弹窗「是否将动作 X 加入禁忌？」，确认后写入 HealthProfile.contraindications
 - 备注文本框（本地存储，不上 iCloud）
-- 保存训练记录
+- 反馈为可选——用户可跳过直接关闭
+- 保存训练记录后 dismiss fullScreenCover，回到首页（状态切换为「📋 有档无计划」）
 
 ### 4.6 HistoryView
 
-- 两个 Tab：训练记录、我的模板
 - 训练记录列表：完成百分比、疲劳表情、日期、时长
-- 模板列表：一键加载
-- 汇总统计：总训练次数、总时长、平均完成率
+- 汇总统计（列表上方）：总训练次数、总时长、平均完成率
 
 ### 4.7 HealthProfileView（新增）
 
@@ -178,6 +213,17 @@ HomeView ──► ChatPlanView ──► PlanEditorView ──► WorkoutPlayer
 - 「我的健身档案」入口
 - 语音偏好（语速、音调、VoiceMode 默认值）
 - 关于与反馈
+
+### 4.9 OnboardingView（新增）
+
+新用户首次打开 App 时展示，1~2 屏 chip 选择流，30 秒内可完成：
+
+- **目标偏好**：减脂 / 增肌 / 康复 / 柔韧 / 心肺（多选 chip）
+- **身体状况**：膝盖不适 / 腰部问题 / 肩颈问题 / 术后恢复 / 无特殊（多选 chip）
+- **可选补充说明**：一行文本框，「还有什么想告诉教练的？」
+- 每屏均为选择，无必填项
+- 完成后自动写入 HealthProfile，进入首页「📋 有档无计划」状态
+- 已有档案的用户不再显示（HealthProfile 非空即跳过）
 
 ## 5. WorkoutEngine — 训练播放引擎
 
@@ -718,11 +764,12 @@ protocol WorkoutResumeStore {
 
 - WorkoutEngine 每次 phase 切换或暂停时写入 snapshot
 - HomeView 在 onAppear / scenePhase = .active 时调用 `load()`，如果存在 snapshot：
-  - 若 `Date().timeIntervalSince(savedAt) > 30 * 60`：直接 clear（超时丢弃）
+  - 若 `Date().timeIntervalSince(savedAt) > 30 * 60`：直接 clear（超时丢弃），首页回到「有档无计划」状态
   - 若 PlanRepository 中已找不到 `planID` 对应的 plan（用户已删除或 iCloud 同步未到位）：clear 并 toast「无法恢复，原始训练计划已不存在」
-  - 否则弹窗「你有 N 分钟前未完成的训练，是否恢复？」
-    - 「恢复」→ 跳转 WorkoutPlayerView，调用 `engine.resume(from: snapshot)`
-    - 「放弃」→ clear
+  - 否则首页切换为「🏃 训练中」状态，显示恢复卡片：
+    - 卡片信息：计划名称、「N 分钟前暂停 · 还剩 M 分钟」
+    - 「继续训练」按钮 → fullScreenCover 弹出 WorkoutPlayerView，调用 `engine.resume(from: snapshot)`
+    - 「放弃训练」按钮 → clear，首页回到「有档无计划」状态
 - `engine.endWorkout()` 与 `onWorkoutComplete()` 都会调用 clear
 
 实现可选用 UserDefaults 存 JSON（轻量）或独立的 SwiftData 模型（本地容器）。
