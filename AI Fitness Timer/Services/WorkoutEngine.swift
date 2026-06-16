@@ -52,6 +52,7 @@ actor WorkoutEngine: Observable {
     }
 
     func skip() {
+        guard phase == .exercise else { return }
         guard let exercise = currentExercise else { return }
         skippedExerciseIds.insert(exercise.templateId)
         advanceToNextExercise()
@@ -89,7 +90,7 @@ actor WorkoutEngine: Observable {
     }
 
     private func tick() {
-        guard isRunning, phase == .exercise || phase == .rest else { return }
+        guard isRunning && (phase == .exercise || phase == .rest) else { return }
 
         timeRemaining -= 1
         totalElapsed += 1

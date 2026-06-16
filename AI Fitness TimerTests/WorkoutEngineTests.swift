@@ -73,6 +73,33 @@ final class WorkoutEngineTests: XCTestCase {
         XCTAssertEqual(timeRemaining, 5)
     }
 
+    func testPauseFreezesRestTimeRemaining() async throws {
+        let clock = MockAppClock()
+        let engine = WorkoutEngine(clock: clock)
+        let plan = makePlan(duration: 1, sets: 2, rest: 5)
+
+        await engine.start(plan: plan)
+        await advance(engine, clock, by: 1)
+        var phase = await engine.phase
+        var timeRemaining = await engine.timeRemaining
+        XCTAssertEqual(phase, .rest)
+        XCTAssertEqual(timeRemaining, 5)
+
+        await engine.pause()
+        await clock.advance(seconds: 3)
+        await Task.yield()
+
+        phase = await engine.phase
+        timeRemaining = await engine.timeRemaining
+        XCTAssertEqual(phase, .rest)
+        XCTAssertEqual(timeRemaining, 5)
+
+        await engine.resume()
+        await advance(engine, clock, by: 1)
+        timeRemaining = await engine.timeRemaining
+        XCTAssertEqual(timeRemaining, 4)
+    }
+
     func testExtendRestOnlyWorksInRest() async throws {
         let clock = MockAppClock()
         let engine = WorkoutEngine(clock: clock)
@@ -94,6 +121,60 @@ final class WorkoutEngineTests: XCTestCase {
         await engine.extendRest()
         timeRemaining = await engine.timeRemaining
         XCTAssertEqual(timeRemaining, 35)
+    }
+
+    func testSkipOnlyAppliesDuringExercise() async throws {
+        let clock = MockAppClock()
+        let engine = WorkoutEngine(clock: clock)
+        let plan = makePlan(duration: 1, sets: 1, rest: 5, exerciseCount: 2)
+
+        await engine.start(plan: plan)
+        await advance(engine, clock, by: 1)
+        var phase = await engine.phase
+        var completedExerciseIds = await engine.completedExerciseIds
+        XCTAssertEqual(phase, .rest)
+        XCTAssertEqual(completedExerciseIds, ["exercise_0"])
+
+        await engine.skip()
+
+        phase = await engine.phase
+        let currentExerciseIndex = await engine.currentExerciseIndex
+        completedExerciseIds = await engine.completedExerciseIds
+        let skippedExerciseIds = await engine.skippedExerciseIds
+        XCTAssertEqual(phase, .rest)
+        XCTAssertEqual(currentExerciseIndex, 0)
+        XCTAssertEqual(completedExerciseIds, ["exercise_0"])
+        XCTAssertEqual(skippedExerciseIds, [])
+
+        await advance(engine, clock, by: 5)
+        phase = await engine.phase
+        let nextExerciseIndex = await engine.currentExerciseIndex
+        let currentSet = await engine.currentSet
+        XCTAssertEqual(phase, .exercise)
+        XCTAssertEqual(nextExerciseIndex, 1)
+        XCTAssertEqual(currentSet, 1)
+    }
+
+    func testTotalSecondsIncludesSetsAndBetweenExerciseRest() {
+        let plan = makePlan(duration: 10, sets: 3, rest: 5, exerciseCount: 2)
+
+        XCTAssertEqual(WorkoutEngine.totalSeconds(for: plan), 85)
+    }
+
+    func testProgressBookkeepingUpdatesAfterTicks() async throws {
+        let clock = MockAppClock()
+        let engine = WorkoutEngine(clock: clock)
+        let plan = makePlan(duration: 2, sets: 2, rest: 1)
+
+        await engine.start(plan: plan)
+        await advance(engine, clock, by: 1)
+
+        let totalElapsed = await engine.totalElapsed
+        let estimatedRemaining = await engine.estimatedRemaining
+        let overallProgress = await engine.overallProgress
+        XCTAssertEqual(totalElapsed, 1)
+        XCTAssertEqual(estimatedRemaining, 4)
+        XCTAssertEqual(overallProgress, 0.2, accuracy: 0.001)
     }
 
     private func makePlan(duration: Int, sets: Int, rest: Int, exerciseCount: Int = 1) -> WorkoutPlan {
