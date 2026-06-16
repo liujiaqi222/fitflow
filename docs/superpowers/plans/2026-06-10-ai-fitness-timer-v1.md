@@ -1161,7 +1161,7 @@ git commit -m "feat: add mock AI plan generation"
 - Create: `AI Fitness Timer/Services/WorkoutEngine.swift`
 - Test: `AI Fitness TimerTests/WorkoutEngineTests.swift`
 
-- [ ] **Step 1: Write failing state-machine tests**
+- [x] **Step 1: Write failing state-machine tests**
 
 Create `AI Fitness TimerTests/WorkoutEngineTests.swift`:
 
@@ -1221,7 +1221,7 @@ final class WorkoutEngineTests: XCTestCase {
 }
 ```
 
-- [ ] **Step 2: Implement core engine**
+- [x] **Step 2: Implement core engine**
 
 Create `AI Fitness Timer/Services/WorkoutEngine.swift`:
 
@@ -1425,7 +1425,7 @@ private extension Array {
 }
 ```
 
-- [ ] **Step 3: Run engine tests and commit**
+- [x] **Step 3: Run engine tests and commit**
 
 Run:
 
@@ -1440,6 +1440,203 @@ Commit:
 ```bash
 git add "AI Fitness Timer/Services/WorkoutEngine.swift" "AI Fitness TimerTests/WorkoutEngineTests.swift"
 git commit -m "feat: add workout engine state machine"
+```
+
+## Task 5.5: Visible Workout Timer Checkpoint
+
+**Why this exists:** Tasks 6-9 are service wiring and platform infrastructure. This checkpoint makes the `WorkoutEngine` visible in the app before continuing with hidden infrastructure work, so the product can be inspected on-device after the core state machine lands.
+
+**Files:**
+- Create: `AI Fitness Timer/Views/WorkoutEngineCheckpointView.swift`
+- Modify: `AI Fitness Timer/Views/HomeView.swift`
+- Test: `AI Fitness TimerUITests/LaunchUITests.swift`
+
+- [ ] **Step 1: Add a minimal engine-driven checkpoint screen**
+
+Create `AI Fitness Timer/Views/WorkoutEngineCheckpointView.swift`:
+
+```swift
+import SwiftUI
+
+struct WorkoutEngineCheckpointView: View {
+    private let engine = WorkoutEngine(clock: SystemAppClock())
+    private let plan = Self.demoPlan()
+
+    @State private var phase: Phase = .idle
+    @State private var currentSet = 1
+    @State private var timeRemaining = 0
+    @State private var isRunning = false
+    @State private var progress = 0.0
+
+    var body: some View {
+        VStack(spacing: 24) {
+            VStack(spacing: 8) {
+                Text(title)
+                    .font(.largeTitle.weight(.bold))
+                Text("第 \(currentSet) 组")
+                    .font(.title3)
+                    .foregroundStyle(.secondary)
+            }
+
+            ZStack {
+                Circle()
+                    .stroke(.secondary.opacity(0.18), lineWidth: 18)
+                Circle()
+                    .trim(from: 0, to: max(0, min(1, progress)))
+                    .stroke(.accent, style: StrokeStyle(lineWidth: 18, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
+                Text("\(timeRemaining)")
+                    .font(.system(size: 64, weight: .bold, design: .rounded).monospacedDigit())
+            }
+            .frame(width: 230, height: 230)
+
+            HStack {
+                Button(isRunning ? "暂停" : "继续") {
+                    Task {
+                        if await engine.isRunning {
+                            await engine.pause()
+                        } else {
+                            await engine.resume()
+                        }
+                        await refresh()
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+
+                Button("+30秒") {
+                    Task {
+                        await engine.extendRest(seconds: 30)
+                        await refresh()
+                    }
+                }
+                .buttonStyle(.bordered)
+
+                Button("跳过") {
+                    Task {
+                        await engine.skip()
+                        await refresh()
+                    }
+                }
+                .buttonStyle(.bordered)
+            }
+        }
+        .padding()
+        .navigationTitle("计时器预览")
+        .task {
+            await engine.start(plan: plan)
+            await refreshLoop()
+        }
+    }
+
+    private var title: String {
+        switch phase {
+        case .idle: "准备开始"
+        case .exercise: "坐姿抬膝"
+        case .rest: "休息"
+        case .completed: "训练完成"
+        }
+    }
+
+    private func refreshLoop() async {
+        while !Task.isCancelled {
+            await refresh()
+            try? await Task.sleep(for: .seconds(1))
+        }
+    }
+
+    private func refresh() async {
+        phase = await engine.phase
+        currentSet = await engine.currentSet
+        timeRemaining = await engine.timeRemaining
+        isRunning = await engine.isRunning
+        progress = await engine.overallProgress
+    }
+
+    private static func demoPlan() -> WorkoutPlan {
+        let template = ExerciseTemplate(
+            id: "checkpoint_seated_knee_raise",
+            name: "坐姿抬膝",
+            duration: 20,
+            sets: 2,
+            restTime: 10,
+            instructions: "坐稳后交替抬膝，保持呼吸平稳。",
+            safety: "如果膝盖疼痛，立即停止。",
+            difficulty: .easy,
+            categories: ["lower-body", "seated"],
+            alternatives: []
+        )
+        return WorkoutPlan(
+            name: "计时器预览",
+            exercises: [ExerciseItem(template: template, sets: 2, duration: 20, restTime: 10, order: 0)],
+            restTimeAfterLastSet: 10
+        )
+    }
+}
+```
+
+- [ ] **Step 2: Wire the checkpoint from Home**
+
+Modify `AI Fitness Timer/Views/HomeView.swift`:
+
+```swift
+import SwiftUI
+
+struct HomeView: View {
+    var body: some View {
+        NavigationStack {
+            List {
+                Section {
+                    Text("AI Fitness Timer")
+                        .font(.title2.weight(.semibold))
+                    Text("Mock provider ready")
+                        .foregroundStyle(.secondary)
+                }
+
+                Section("可见进展") {
+                    NavigationLink("打开计时器预览") {
+                        WorkoutEngineCheckpointView()
+                    }
+                }
+            }
+            .navigationTitle("训练")
+        }
+    }
+}
+```
+
+- [ ] **Step 3: Add a UI launch smoke assertion for the checkpoint entry**
+
+Modify `AI Fitness TimerUITests/LaunchUITests.swift` to assert the entry exists after launch:
+
+```swift
+import XCTest
+
+final class LaunchUITests: XCTestCase {
+    func testLaunchShowsWorkoutCheckpointEntry() {
+        let app = XCUIApplication()
+        app.launch()
+
+        XCTAssertTrue(app.staticTexts["AI Fitness Timer"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["打开计时器预览"].exists)
+    }
+}
+```
+
+- [ ] **Step 4: Build, run UI smoke test, and commit**
+
+Run:
+
+```bash
+xcodebuild test -scheme "AI Fitness Timer" -destination 'platform=iOS Simulator,name=iPhone 16' -only-testing:"AI Fitness TimerUITests/LaunchUITests/testLaunchShowsWorkoutCheckpointEntry"
+```
+
+Expected: UI test passes and the launched app visibly exposes a timer preview entry on Home.
+
+Commit:
+
+```bash
+git add "AI Fitness Timer/Views/WorkoutEngineCheckpointView.swift" "AI Fitness Timer/Views/HomeView.swift" "AI Fitness TimerUITests/LaunchUITests.swift"
+git commit -m "feat: add visible workout timer checkpoint"
 ```
 
 ## Task 6: Secrets Store And Real Provider Shells
