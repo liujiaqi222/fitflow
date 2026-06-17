@@ -26,6 +26,7 @@ targets:
         INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents: YES
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_AI_API_KEY: $(AI_API_KEY)
+        INFOPLIST_KEY_AI_API_BASE_URL: $(AI_API_BASE_URL)
         INFOPLIST_KEY_UIBackgroundModes:
           - audio
     dependencies:

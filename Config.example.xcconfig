@@ -3,5 +3,9 @@
 //   1. cp Config.example.xcconfig Config.local.xcconfig
 //   2. Fill in your real API key in Config.local.xcconfig
 //   3. Run `xcodegen generate` to regenerate the .xcodeproj
+//
+// NOTE: xcconfig treats `//` as start-of-comment. Use $() between the colon
+// and the slashes to escape it: `https:$()//host/path`.
 
 AI_API_KEY = your-api-key-here
+AI_API_BASE_URL = OpenAI 兼容格式的api端点
