@@ -1,0 +1,7 @@
+// Template for Config.local.xcconfig. Safe to commit.
+// To set up locally:
+//   1. cp Config.example.xcconfig Config.local.xcconfig
+//   2. Fill in your real API key in Config.local.xcconfig
+//   3. Run `xcodegen generate` to regenerate the .xcodeproj
+
+AI_API_KEY = your-api-key-here

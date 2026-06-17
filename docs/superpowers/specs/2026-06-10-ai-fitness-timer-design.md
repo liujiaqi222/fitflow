@@ -36,10 +36,10 @@
 | UI 框架 | SwiftUI |
 | 最低版本 | iOS 17+ |
 | 架构模式 | MVVM + Service Layer + WorkoutEngine |
-| AI 集成 | 可插拔 AI 后端（protocol，支持 Claude/OpenAI/Mock），默认 Mock |
+| AI 集成 | 单一 AI 后端（protocol，便于测试 mock）；API Key 通过 xcconfig 注入 Info.plist，运行时读取 |
 | 语音播报 | AVSpeechSynthesizer |
 | 数据持久化 | SwiftData + CloudKit（敏感字段本地） |
-| 密钥存储 | Keychain（SecretsStore 封装） |
+| 密钥存储 | xcconfig 编译注入（Config.local.xcconfig 入 .gitignore，不进 git 历史） |
 | 后台运行 | Background Modes (audio) + 持续 AVAudioSession + 静音音频保活 |
 | Live Activity | ActivityKit，事件驱动 + 系统计时渲染 |
 | 包管理 | Swift Package Manager |
@@ -51,6 +51,7 @@
 SwiftUI Views
 ├── OnboardingView              // [新增] 新用户引导
 ├── HomeView
+├── MoreView                    // [新增] 更多（训练记录/档案/设置入口）
 ├── ChatPlanView
 ├── PlanEditorView
 ├── WorkoutPlayerView           // 含内嵌 FeedbackView，fullScreenCover 呈现
@@ -70,9 +71,8 @@ ViewModels
 
 Services
 ├── AIService (protocol)
-│   ├── ClaudeProvider
-│   ├── OpenAIProvider
-│   └── MockProvider
+│   ├── CloudProvider             // 单一真实实现（V1 调用统一后端，硬编码 Key 经 xcconfig 注入）
+│   └── MockProvider              // 测试 / 离线降级
 ├── WorkoutEngine
 ├── SpeechService
 ├── AudioSessionController       // [新增] 管理 AVAudioSession 生命周期
@@ -81,7 +81,7 @@ Services
 ├── ExerciseLibrary
 ├── PlanRepository
 ├── HealthProfileStore           // [新增] HealthProfile 读写 + prompt 序列化
-├── SecretsStore                 // [新增] Keychain 封装
+├── AppConfig                    // [新增] 从 Bundle.main.infoDictionary 读取 AI_API_KEY
 ├── WorkoutResumeStore           // [新增] 中断恢复
 └── Clock (protocol)             // [新增] 时间抽象
 
@@ -99,12 +99,12 @@ SwiftData Models
 [OnboardingView] ──首次──► HomeView ──► ChatPlanView ──► PlanEditorView ──► WorkoutPlayerView (+ FeedbackView 内嵌)
                                │  ▲                                                    │
                                │  └──────────────── (HealthProfile 更新) ◄─────────────┘
-                               ├── HistoryView
-                               ├── HealthProfileView
-                               ├── TemplatesView
-                               └── SettingsView
+                               └── (⋯ 更多) ──► MoreView
+                                                  ├── HistoryView
+                                                  ├── HealthProfileView
+                                                  └── SettingsView
 
-底部 Tab：训练 (HomeView) | 我的 (HistoryView + HealthProfileView + SettingsView)
+无底部 Tab，单 NavigationStack 线性流。HomeView 导航栏右上角 ⋯ 图标进入 MoreView。
 ```
 
 使用 NavigationStack + navigationDestination 实现线性流程为主。HomeView 启动时检查 WorkoutResumeStore，若存在 30 分钟内未完成的训练，首页切换为「训练中」状态显示恢复卡片（见 §12.2），不使用弹窗打断。
@@ -141,7 +141,7 @@ SwiftData Models
 - 「放弃训练」按钮 → clear，回到「有档无计划」状态
 - 超时 30 分钟自动清除，回到「有档无计划」状态（见 §12.2）
 
-**底部导航**：2 个 Tab——「训练」（HomeView）+「我的」（合并历史/档案/设置）
+**底部导航**：无底部 Tab。导航栏右上角 ⋯ 图标 push 进入 MoreView（训练记录 / 健身档案 / 设置）。
 
 ### 4.2 ChatPlanView（已重写）
 
@@ -208,11 +208,11 @@ SwiftData Models
 
 ### 4.8 SettingsView
 
-- AI 后端选择（Claude / OpenAI / **Mock**，默认 Mock）
-- API Key 配置（通过 SecretsStore 写入 Keychain）
 - 「我的健身档案」入口
 - 语音偏好（语速、音调、VoiceMode 默认值）
 - 关于与反馈
+
+V1 不展示 AI 后端选择或 API Key 配置——Key 通过 xcconfig 编译注入（见 §6.5），用户无感。
 
 ### 4.9 OnboardingView（新增）
 
@@ -224,6 +224,14 @@ SwiftData Models
 - 每屏均为选择，无必填项
 - 完成后自动写入 HealthProfile，进入首页「📋 有档无计划」状态
 - 已有档案的用户不再显示（HealthProfile 非空即跳过）
+
+### 4.10 MoreView（新增）
+
+从 HomeView 导航栏右上角 ⋯ 图标 push 进入，列表式，包含三个入口：
+
+- 📊 训练记录 → push 进入 HistoryView
+- 🏥 健身档案 → push 进入 HealthProfileView
+- ⚙️ 设置 → push 进入 SettingsView
 
 ## 5. WorkoutEngine — 训练播放引擎
 
@@ -368,9 +376,8 @@ struct AIResponse {
 
 ### 6.2 实现类
 
-- **ClaudeProvider**：调用 Anthropic Claude API（推荐 claude-sonnet-4-6 或更新）
-- **OpenAIProvider**：调用 OpenAI Responses/Chat Completions API
-- **MockProvider**：本地规则引擎，默认 provider，开发/预览/降级用
+- **CloudProvider**：V1 唯一真实实现。统一通过硬编码 API Key（经 xcconfig 注入，见 §6.5）调用模型供应商。用户无需配置后端或 Key。
+- **MockProvider**：本地规则引擎，用于开发预览和真实 provider 失败时的降级
 
 ### 6.3 Prompt 策略（已重写：查表模式）
 
@@ -409,27 +416,34 @@ struct AIResponse {
 
 AI API 调用失败（网络/配额/Key 无效/超时）时，自动降级到 MockProvider 并在 UI 提示。MockProvider 实现一套简化规则（基于关键词匹配 + 档案禁忌过滤 + 时间预算），保证用户始终能生成计划。
 
-### 6.5 SecretsStore（新增）
+### 6.5 API Key 注入（已重写：xcconfig 方案）
 
-API Key 通过 Keychain 存储，不进入 SwiftData，不上 iCloud。
+V1 不让用户配置 API Key——开发者统一提供，硬编码进 App。但**严禁**把明文 Key 写进 Swift 源码或 Info.plist 模板（会进 git 历史）。
+
+**实施方案**：
+
+1. **xcconfig 文件**（项目根目录）：
+   - `Config.local.xcconfig`：含真实 Key，**入 .gitignore**，不进 git
+   - `Config.example.xcconfig`：模板，安全入 git，新协作者复制后填入自己的 Key
+2. **project.yml**（XcodeGen）通过 `configFiles` 引用 `Config.local.xcconfig`，并把 `AI_API_KEY` 通过 `INFOPLIST_KEY_AI_API_KEY` 注入生成的 Info.plist
+3. **AppConfig** 服务从 `Bundle.main.infoDictionary?["AI_API_KEY"] as? String` 读取，CloudProvider 构造时通过依赖注入获取
 
 ```swift
-enum AIProviderID: String { case claude, openai }
-
-protocol SecretsStore {
-    func get(provider: AIProviderID) -> String?
-    func set(provider: AIProviderID, key: String) throws
-    func clear(provider: AIProviderID) throws
-}
-
-final class KeychainSecretsStore: SecretsStore {
-    // kSecClass = kSecClassGenericPassword
-    // kSecAttrAccessible = kSecAttrAccessibleWhenUnlockedThisDeviceOnly
-    // kSecAttrService = "ai-timer.api-key"
-    // kSecAttrAccount = provider.rawValue
-    // 不参与 iCloud Keychain 同步（不设 kSecAttrSynchronizable）
+enum AppConfig {
+    static var aiApiKey: String {
+        guard let key = Bundle.main.infoDictionary?["AI_API_KEY"] as? String,
+              !key.isEmpty, key != "your-api-key-here" else {
+            assertionFailure("AI_API_KEY 未配置，请检查 Config.local.xcconfig")
+            return ""
+        }
+        return key
+    }
 }
 ```
+
+**已知限制**：硬编码方式 App Store 上架后 Key 可被逆向提取。V2 计划改为后端代理（App 调用自有服务器，Key 仅存服务器侧）。
+
+**Settings 不再展示**：AI 后端选择和 API Key 配置入口移除——用户无感。
 
 ## 7. SpeechService 语音播报
 
